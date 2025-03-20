@@ -116,26 +116,34 @@ runs:
         NEW_VERSION="${NEW_SEMVER}+${BUILD}"
         echo "new version = $NEW_VERSION"
 
-        # Append -RC for staging branch pushes
-        if [[ "$GITHUB_REF_NAME" == "staging" && "$GITHUB_EVENT_NAME" == "push" ]]; then
+        if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == "staging" ]]; then
           TAG_VERSION="v${NEW_SEMVER}-RC+${BUILD}"
-          echo "Staging branch detected, tagging as RC: $TAG_VERSION"
-        # Finalizing merge from staging into main
-        elif [[ "$GITHUB_REF_NAME" == "main" && "$GITHUB_EVENT_NAME" == "push" ]]; then
+          echo "Staging branch detected (push), tagging as RC: $TAG_VERSION"
+
+        elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == "main" ]]; then
           TAG_VERSION="v${NEW_SEMVER}+${BUILD}"
-          echo "Merged into main from staging, finalizing tag: $TAG_VERSION"
+          echo "Merged into main (push), finalizing tag: $TAG_VERSION"
+
+        elif [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$GITHUB_BASE_REF" == "main" && "$GITHUB_HEAD_REF" == "staging" ]]; then
+          echo "PR from staging to main detected, no tagging yet."
+          exit 0
+
         else
           TAG_VERSION="v${NEW_SEMVER}+${BUILD}"
-          echo "Regular version bump/tagging: $TAG_VERSION"
+          echo "Regular version bump: $TAG_VERSION"
         fi
+
 
         echo "tag version = $TAG_VERSION"
 
-        # Update pubspec file
-        sed -i -E "s/^version:[[:space:]]*.*/version: ${TAG_VERSION#v}/" "$VERSION_FILE"
+        # Update version file
+        sed -i -E "s/^version:[[:space:]]*.*/version: ${NEW_VERSION}/" "$VERSION_FILE"
+        echo "File updated with new version"
 
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        echo "starting commit"
 
         git add "$VERSION_FILE"
         git commit -m "chore: bump version to ${TAG_VERSION#v}"
