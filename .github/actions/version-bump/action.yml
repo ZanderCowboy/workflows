@@ -114,7 +114,7 @@ runs:
         NEW_SEMVER="$MAJOR.$MINOR.$PATCH"
         echo "new semver = $NEW_SEMVER"
         NEW_VERSION="${NEW_SEMVER}+${BUILD}"
-        echco "new version = $NEW_VERSION"
+        echo "new version = $NEW_VERSION"
 
         # Append -RC for staging branch pushes
         if [[ "$GITHUB_REF_NAME" == "staging" && "$GITHUB_EVENT_NAME" == "push" ]]; then
