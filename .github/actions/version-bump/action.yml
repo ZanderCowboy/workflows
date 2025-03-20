@@ -8,6 +8,9 @@ inputs:
   version_file:
     description: "Path to pubspec file"
     required: true
+  branch:
+    description: "Branch to commit to"
+    required: true
 
 outputs:
   new_version:
@@ -160,3 +163,4 @@ runs:
       with:
         commit_message: "Bump version to ${{ steps.version.outputs.new_version }}"
         tagging_message: "${{ steps.version.outputs.new_tag_version }}"
+        branch: ${{ inputs.branch }}
