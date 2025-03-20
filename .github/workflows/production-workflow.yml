@@ -1,21 +1,22 @@
 ---
-name: Develop Workflow
+name: Production Workflow
 
 on:
   pull_request:
     branches:
-      - "develop"
+      - main
+    types:
+      - closed
   workflow_dispatch:
 
 concurrency:
-  group: develop-versioning-and-build
+  group: production-versioning-and-build
   cancel-in-progress: false
 
 jobs:
-  version-build-firebase:
-    name: Develop - Versioning, Building, and Firebase
+  version-build-prod:
+    name: Production - Version Bump, Build, and Production
     runs-on: ubuntu-latest
-
     permissions:
       contents: write
 
@@ -29,7 +30,6 @@ jobs:
       # VERSION BUMP
       ###########################################
       - name: Bump version based on PR labels
-        if: github.event.pull_request.merged == true
         uses: ./.github/actions/version-bump
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -42,8 +42,7 @@ jobs:
         run: echo "Build"
 
       ###########################################
-      # FIREBASE UPLOAD
+      # PRODUCTION TRACK UPLOAD
       ###########################################
-      - name: Firebase Upload
-        if: github.event.pull_request.merged == true
-        run: echo "Firebase Upload"
+      - name: Production Track Upload
+        run: echo "Production Track Upload"

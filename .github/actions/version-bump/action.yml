@@ -71,11 +71,12 @@ runs:
         SEMVER=${LATEST_TAG#v}
         SEMVER=${SEMVER%%-RC*}
         echo "Current version: $SEMVER"
+        echo "Current build: $BUILD"
 
         MAJOR=$(echo "$SEMVER" | cut -d '.' -f 1)
         MINOR=$(echo "$SEMVER" | cut -d '.' -f 2)
         PATCH=$(echo "$SEMVER" | cut -d '.' -f 3 | cut -d '+' -f 1)
-        BUILD=$(echo "$SEMVER" | grep '+' | cut -d '+' -f 2)
+        BUILD=$(echo "$LATEST_TAG" | grep '+' | cut -d '+' -f 2)
         BUILD=${BUILD:-1}
 
         LABELS=""
@@ -121,6 +122,10 @@ runs:
           TAG_VERSION="v${NEW_SEMVER}-RC+${BUILD}"
           echo "Staging branch detected (push), tagging as RC: $TAG_VERSION"
 
+        elif [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$GITHUB_HEAD_REF" == "staging" ]]; then
+          TAG_VERSION="v${NEW_SEMVER}-RC+${BUILD}"
+          echo "Staging branch detected (pull request), tagging as RC: $TAG_VERSION"
+
         elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == "main" ]]; then
           TAG_VERSION="v${NEW_SEMVER}+${BUILD}"
           echo "Merged into main (push), finalizing tag: $TAG_VERSION"
@@ -137,7 +142,9 @@ runs:
         sed -i -E "s/^version:[[:space:]]*.*/version: ${NEW_VERSION}/" "$VERSION_FILE"
 
         echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "new_version=${NEW_VERSION}"
         echo "new_tag_version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "new_tag_version=${TAG_VERSION}"
 
     - uses: stefanzweifel/git-auto-commit-action@v5
       with:
