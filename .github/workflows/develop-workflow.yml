@@ -1,0 +1,50 @@
+---
+name: Develop Workflow
+
+on:
+  pull_request:
+    branches:
+      - "develop"
+  workflow_dispatch:
+
+concurrency:
+  group: develop-versioning-and-build
+  cancel-in-progress: false
+
+jobs:
+  version-build-firebase:
+    name: Develop - Versioning, Building, and Firebase
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      ###########################################
+      # VERSION BUMP
+      ###########################################
+      - name: Bump version based on PR labels
+        if: github.event.pull_request.merged == true
+        uses: ./.github/actions/version-bump
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          version_file: "version.txt"
+          branch: "develop"
+
+      ###########################################
+      # BUILD
+      ###########################################
+      - name: Build a new APK / AAP
+        run: echo "Build"
+
+      ###########################################
+      # FIREBASE UPLOAD
+      ###########################################
+      - name: Firebase Upload
+        if: github.event.pull_request.merged == true
+        run: echo "Firebase Upload"

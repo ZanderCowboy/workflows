@@ -1,0 +1,56 @@
+---
+name: Staging Workflow
+
+on:
+  pull_request:
+    branches:
+      - staging
+    types:
+      - "closed"
+  workflow_dispatch:
+
+concurrency:
+  group: staging-versioning-and-build
+  cancel-in-progress: false
+
+jobs:
+  version-build-internal:
+    name: Staging - Version Bump, Build, and Internal
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      ###########################################
+      # VERSION BUMP
+      ###########################################
+      - name: Bump version based on PR labels
+        if: |
+          (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+          (github.event_name == 'push' && github.event.pull_request == null)
+        uses: ./.github/actions/version-bump
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          version_file: "version.txt"
+          branch: "staging"
+
+      ###########################################
+      # BUILD
+      ###########################################
+      - name: Build a new APK / AAP
+        run: echo "Build"
+
+      ###########################################
+      # INTERNAL TRACK UPLOAD
+      ###########################################
+      - name: Internal Track Upload
+        if: |
+          (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+          (github.event_name == 'push' && github.event.pull_request == null)
+        run: echo "Internal Track Upload"

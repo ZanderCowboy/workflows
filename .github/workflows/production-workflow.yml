@@ -1,0 +1,50 @@
+---
+name: Production Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+  workflow_dispatch:
+
+concurrency:
+  group: production-versioning-and-build
+  cancel-in-progress: false
+
+jobs:
+  version-build-prod:
+    name: Production - Version Bump, Build, and Production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      ###########################################
+      # VERSION BUMP
+      ###########################################
+      - name: Bump version based on PR labels
+        uses: ./.github/actions/version-bump
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pat_token: ${{ secrets.PAT_GITHUB_ACTIONS}}
+          version_file: "version.txt"
+          branch: "main"
+
+      ###########################################
+      # BUILD
+      ###########################################
+      - name: Build a new APK / AAP
+        run: echo "Build"
+
+      ###########################################
+      # PRODUCTION TRACK UPLOAD
+      ###########################################
+      - name: Production Track Upload
+        run: echo "Production Track Upload"

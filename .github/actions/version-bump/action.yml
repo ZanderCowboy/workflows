@@ -1,0 +1,170 @@
+name: "Version Bumper"
+description: "Bumps semantic version based on PR labels and increments build number."
+
+inputs:
+  github_token:
+    description: "Github Token"
+    required: true
+  pat_token:
+    description: "Personal Access Token"
+    required: true
+  version_file:
+    description: "Path to pubspec file"
+    required: true
+  branch:
+    description: "Branch to commit to"
+    required: true
+
+outputs:
+  new_version:
+    description: "New semantic version generated"
+    value: ${{ steps.version.outputs.new_version }}
+  new_tag_version:
+    description: "New tag version generated"
+    value: ${{ steps.version.outputs.new_tag_version }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref }}
+
+    - name: Install GitHub CLI (gh)
+      shell: bash
+      run: |
+        (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) \
+          && sudo mkdir -p -m 755 /etc/apt/keyrings \
+          && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+          && cat $out | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+          && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+          && sudo apt update \
+          && sudo apt install gh -y
+
+    - name: Run version bump logic
+      id: version
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        VERSION_FILE: ${{ inputs.version_file }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        GITHUB_REF_NAME: ${{ github.ref_name }}
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
+        GITHUB_BASE_REF: ${{ github.base_ref }}
+        GITHUB_HEAD_REF: ${{ github.head_ref }}
+      run: |
+        set -e
+
+        echo "VERSION_FILE: $VERSION_FILE"
+        echo "PR_NUMBER: $PR_NUMBER"
+        echo "GITHUB_REF_NAME: $GITHUB_REF_NAME"
+        echo "GITHUB_EVENT_NAME: $GITHUB_EVENT_NAME"
+        echo "GITHUB_BASE_REF: $GITHUB_BASE_REF"
+        echo "GITHUB_HEAD_REF: $GITHUB_HEAD_REF"
+
+        if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$GITHUB_HEAD_REF" == "staging" && "$GITHUB_BASE_REF" == "main" ]]; then
+          echo "PR from staging to main detected; no version bump performed."
+          exit 0
+        fi
+
+        git fetch --tags
+        LATEST_TAG=$(git tag -l 'v*.*.*' --sort=-version:refname | head -n1)
+        LATEST_TAG=${LATEST_TAG:-v0.0.0+0}
+        echo "LATEST_TAG=$LATEST_TAG"
+
+        SEMVER=${LATEST_TAG#v}
+        SEMVER=${SEMVER%%-RC*}
+        echo "Current version: $SEMVER"
+        echo "Current build: $BUILD"
+
+        MAJOR=$(echo "$SEMVER" | cut -d '.' -f 1)
+        MINOR=$(echo "$SEMVER" | cut -d '.' -f 2)
+        PATCH=$(echo "$SEMVER" | cut -d '.' -f 3 | cut -d '+' -f 1)
+        BUILD=$(echo "$LATEST_TAG" | grep '+' | cut -d '+' -f 2)
+        BUILD=${BUILD:-1}
+
+        LABELS=""
+        if [ -n "$PR_NUMBER" ]; then
+          LABELS=$(gh pr view "$PR_NUMBER" --json labels -q '.labels[].name')
+        fi
+
+        BUMP_TYPE=""
+        if echo "$LABELS" | grep -qi "major"; then
+          BUMP_TYPE="major"
+        elif echo "$LABELS" | grep -qi "minor"; then
+          BUMP_TYPE="minor"
+        elif echo "$LABELS" | grep -qi "patch"; then
+          BUMP_TYPE="patch"
+        else
+          echo "Incrementing build number only."
+        fi
+
+        case $BUMP_TYPE in
+          major)
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            ;;
+          minor)
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            ;;
+          patch)
+            PATCH=$((PATCH + 1))
+            ;;
+          *)
+            echo "Build number will increment only."
+            ;;
+        esac
+
+        BUILD=$((BUILD + 1))
+
+        NEW_SEMVER="$MAJOR.$MINOR.$PATCH"
+        NEW_VERSION="${NEW_SEMVER}+${BUILD}"
+
+        if [[ "$GITHUB_BASE_REF" == "staging" ]]; then
+          TAG_VERSION="v${NEW_SEMVER}-RC+${BUILD}"
+          echo "Staging branch detected (pull request), tagging as RC: $TAG_VERSION"
+
+        elif [[ "$GITHUB_REF_NAME" == "main" ]]; then
+          TAG_VERSION="v${NEW_SEMVER}+${BUILD}"
+          echo "Merged into main (push), finalizing tag: $TAG_VERSION"
+
+        elif [[ "$GITHUB_BASE_REF" == "main" && "$GITHUB_HEAD_REF" == "staging" ]]; then
+          echo "PR from staging to main detected, no tagging yet."
+          exit 0
+
+        else
+          TAG_VERSION="v${NEW_SEMVER}+${BUILD}"
+          echo "Regular version bump: $TAG_VERSION"
+        fi
+
+        echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "new_version=${NEW_VERSION}"
+        echo "new_tag_version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "new_tag_version=${TAG_VERSION}"
+
+    ###########################################
+    # AUTO COMMIT
+    ###########################################
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref }}
+        token: ${{ inputs.pat_token }}
+
+    - name: Update version file
+      shell: bash
+      env:
+        VERSION_FILE: ${{ inputs.version_file }}
+        NEW_VERSION: ${{ steps.version.outputs.new_version }}
+      run: |
+        sed -i -E "s/^version:[[:space:]]*.*/version: ${NEW_VERSION}/" "$VERSION_FILE"
+
+    - uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "Bump version to ${{ steps.version.outputs.new_version }}"
+        tagging_message: "${{ steps.version.outputs.new_tag_version }}"
+        branch: ${{ inputs.branch }}
