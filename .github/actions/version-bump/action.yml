@@ -61,11 +61,6 @@ runs:
         echo "GITHUB_BASE_REF: $GITHUB_BASE_REF"
         echo "GITHUB_HEAD_REF: $GITHUB_HEAD_REF"
 
-        if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$GITHUB_HEAD_REF" == "staging" && "$GITHUB_BASE_REF" == "main" ]]; then
-          echo "PR from staging to main detected; no version bump performed."
-          exit 0
-        fi
-
         git fetch --tags
         LATEST_TAG=$(git tag -l 'v*.*.*' --sort=-version:refname | head -n1)
         LATEST_TAG=${LATEST_TAG:-v0.0.0+0}
@@ -116,6 +111,15 @@ runs:
             ;;
         esac
 
+        if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$GITHUB_HEAD_REF" == "staging" && "$GITHUB_BASE_REF" == "main" ]]; then
+          echo "PR from staging to main detected; no version bump performed."
+          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "new_version=${NEW_VERSION}"
+          echo "new_tag_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "new_tag_version=${NEW_VERSION}"
+          exit 0
+        fi
+
         BUILD=$((BUILD + 1))
 
         NEW_SEMVER="$MAJOR.$MINOR.$PATCH"
@@ -125,9 +129,12 @@ runs:
           TAG_VERSION="v${NEW_SEMVER}-RC+${BUILD}"
           echo "Staging branch detected (pull request), tagging as RC: $TAG_VERSION"
 
-        elif [[ "$GITHUB_REF_NAME" == "main" ]]; then
+        elif [[ "$GITHUB_BASE_REF" == "main" ]]; then
           TAG_VERSION="v${NEW_SEMVER}+${BUILD}"
           echo "Merged into main (push), finalizing tag: $TAG_VERSION"
+          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "new_tag_version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
+          exit 0
 
         elif [[ "$GITHUB_BASE_REF" == "main" && "$GITHUB_HEAD_REF" == "staging" ]]; then
           echo "PR from staging to main detected, no tagging yet."
@@ -147,12 +154,14 @@ runs:
     # AUTO COMMIT
     ###########################################
     - name: Checkout repository
+      if: ${{ github.ref_name != 'main' }}
       uses: actions/checkout@v4
       with:
         token: ${{ inputs.pat_token }}
         ref: ${{ github.head_ref }}
 
     - name: Update version file
+      if: ${{ github.ref_name != 'main' }}
       shell: bash
       env:
         VERSION_FILE: ${{ inputs.version_file }}
@@ -161,7 +170,17 @@ runs:
         sed -i -E "s/^version:[[:space:]]*.*/version: ${NEW_VERSION}/" "$VERSION_FILE"
 
     - uses: stefanzweifel/git-auto-commit-action@v5
+      if: ${{ github.ref_name != 'main' }}
       with:
         commit_message: "Bump version to ${{ steps.version.outputs.new_version }}"
         tagging_message: "${{ steps.version.outputs.new_tag_version }}"
         branch: ${{ inputs.branch }}
+
+    - name: Push tag for main branch
+      if: ${{ github.ref_name == 'main' }}
+      shell: bash
+      env:
+        TAG_VERSION: ${{ steps.version.outputs.new_tag_version }}
+      run: |
+        git tag "$TAG_VERSION"
+        git push origin "$TAG_VERSION"
