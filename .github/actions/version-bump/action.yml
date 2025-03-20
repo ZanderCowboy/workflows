@@ -115,19 +115,17 @@ runs:
             ;;
         esac
 
-        if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$GITHUB_HEAD_REF" == "staging" && "$GITHUB_BASE_REF" == "main" ]]; then
-          echo "PR from staging to main detected; no version bump performed."
-          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "new_version=${NEW_VERSION}"
-          echo "new_tag_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "new_tag_version=${NEW_VERSION}"
-          exit 0
-        fi
-
         BUILD=$((BUILD + 1))
 
         NEW_SEMVER="$MAJOR.$MINOR.$PATCH"
         NEW_VERSION="${NEW_SEMVER}+${BUILD}"
+
+        if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$GITHUB_HEAD_REF" == "staging" && "$GITHUB_BASE_REF" == "main" ]]; then
+          echo "PR from staging to main detected; no version bump performed."
+          echo "new_tag_version=${NEW_SEMVER}" >> "$GITHUB_OUTPUT"
+          echo "new_tag_version=${NEW_SEMVER}"
+          exit 0
+        fi
 
         if [[ "$GITHUB_BASE_REF" == "staging" ]]; then
           TAG_VERSION="v${NEW_SEMVER}-RC+${BUILD}"
