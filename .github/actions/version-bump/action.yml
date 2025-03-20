@@ -145,12 +145,19 @@ runs:
 
         echo "starting commit"
 
-        git add "$VERSION_FILE"
-        git commit -m "chore: bump version to ${TAG_VERSION#v}"
-        git push origin HEAD
+        if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-        git tag "$TAG_VERSION"
-        git push origin "$TAG_VERSION"
+          git add "$VERSION_FILE"
+          git commit -m "chore: bump version to ${TAG_VERSION#v}"
+          git push origin HEAD
+
+          git tag "$TAG_VERSION"
+          git push origin "$TAG_VERSION"
+        else
+          echo "Pull request event detected; skipping commit/tag push."
+        fi
 
         echo "new_version=${TAG_VERSION#v}" >> "$GITHUB_OUTPUT"
         echo "new_version=${TAG_VERSION#v}" >> "$GITHUB_ENV"
