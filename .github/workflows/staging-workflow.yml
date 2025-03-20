@@ -37,6 +37,7 @@ jobs:
         uses: ./.github/actions/version-bump
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          pat_token: ${{ secrets.PAT_GITHUB_ACTIONS }}
           version_file: "version.txt"
           branch: "staging"
 
