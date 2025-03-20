@@ -1,0 +1,46 @@
+---
+name: Linting and Testing Workflow
+
+on:
+  pull_request:
+    branches:
+      - "**"
+    types:
+      - "opened"
+      - "synchronize"
+      - "reopened"
+      - "ready_for_review"
+  push:
+    branches:
+     - "**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-test-report:
+    name: Lint, Test, Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      ###########################################
+      # LINTING
+      ###########################################
+      - run: echo "Linting"
+
+      ###########################################
+      # TESTING
+      ###########################################
+      - run: echo "Testing"
+
+      ###########################################
+      # REPORTING
+      ###########################################  
+      - run: echo "Reporting"

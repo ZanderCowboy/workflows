@@ -5,9 +5,8 @@ on:
   pull_request:
     branches:
       - main
-  push:
-    branches:
-     - main
+    types:
+      - closed
   workflow_dispatch:
 
 concurrency:
@@ -15,8 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  lint-test-report:
-    name: Production - Version Bump
+  version-build-prod:
+    name: Production - Version Bump, Build, and Production
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -28,7 +27,7 @@ jobs:
           fetch-depth: 0
 
       ###########################################
-      # VERSION BUMP and COMMIT
+      # VERSION BUMP
       ###########################################
       - name: Bump version based on PR labels
         uses: ./.github/actions/version-bump
@@ -37,14 +36,13 @@ jobs:
           version_file: "version.txt"
 
       ###########################################
-      # COMMIT NEW VERSION
+      # BUILD
       ###########################################
-      # - name: Auto commit new pubspec version
-      #   id: auto-commit-action
-      #   uses: stefanzweifel/git-auto-commit-action@v5
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     commit_message: "Bump pubspec version to ${{ env.new_version }}"
-      #     file_pattern: "apps/multichoice/pubspec.yaml"
-      #     disable_globbing: true
+      - name: Build a new APK / AAP
+        run: echo "Build"
+
+      ###########################################
+      # PRODUCTION TRACK UPLOAD
+      ###########################################
+      - name: Production Track Upload
+        run: echo "Production Track Upload"

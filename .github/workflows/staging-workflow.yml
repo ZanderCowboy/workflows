@@ -5,7 +5,8 @@ on:
   pull_request:
     branches:
       - staging
-      - main
+    types:
+      - "closed"
   push:
     branches:
      - staging
@@ -16,9 +17,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  lint-test-report:
-    name: Staging - Version Bump
+  version-build-internal:
+    name: Staging - Version Bump, Build, and Internal
     runs-on: ubuntu-latest
+
     permissions:
       contents: write
 
@@ -32,20 +34,25 @@ jobs:
       # VERSION BUMP
       ###########################################
       - name: Bump version based on PR labels
+        if: |
+          github.event_name == 'push' ||
+          github.event.pull_request.merged == true
         uses: ./.github/actions/version-bump
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           version_file: "version.txt"
 
       ###########################################
-      # COMMIT NEW VERSION
+      # BUILD
       ###########################################
-      # - name: Auto commit new pubspec version
-      #   id: auto-commit-action
-      #   uses: stefanzweifel/git-auto-commit-action@v5
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     commit_message: "Bump pubspec version to ${{ env.new_version }}"
-      #     file_pattern: "apps/multichoice/pubspec.yaml"
-      #     disable_globbing: true
+      - name: Build a new APK / AAP
+        run: echo "Build"
+
+      ###########################################
+      # INTERNAL TRACK UPLOAD
+      ###########################################
+      - name: Internal Track Upload
+        if: |
+          github.event_name == 'push' ||
+          github.event.pull_request.merged == true
+        run: echo "Internal Track Upload"
