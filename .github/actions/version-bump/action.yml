@@ -143,8 +143,6 @@ runs:
         echo "new_tag_version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
         echo "new_tag_version=${TAG_VERSION}"
 
-        echo "PAT_GITHUB_ACTIONS: ${{ inputs.pat_token }}"
-
     ###########################################
     # AUTO COMMIT
     ###########################################
