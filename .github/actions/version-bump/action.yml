@@ -13,7 +13,7 @@ outputs:
   new_version:
     description: "New semantic version generated"
     value: ${{ steps.version.outputs.new_version }}
-  new_tag_version: 
+  new_tag_version:
     description: "New tag version generated"
     value: ${{ steps.version.outputs.new_tag_version }}
 
@@ -145,6 +145,11 @@ runs:
         echo "new_version=${NEW_VERSION}"
         echo "new_tag_version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
         echo "new_tag_version=${TAG_VERSION}"
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref }}
 
     - uses: stefanzweifel/git-auto-commit-action@v5
       with:
