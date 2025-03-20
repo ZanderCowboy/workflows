@@ -139,17 +139,26 @@ runs:
           echo "Regular version bump: $TAG_VERSION"
         fi
 
-        sed -i -E "s/^version:[[:space:]]*.*/version: ${NEW_VERSION}/" "$VERSION_FILE"
-
         echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
         echo "new_version=${NEW_VERSION}"
         echo "new_tag_version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
         echo "new_tag_version=${TAG_VERSION}"
 
+    ###########################################
+    # AUTO COMMIT
+    ###########################################
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         ref: ${{ github.head_ref }}
+
+    - name: Update version file
+      shell: bash
+      env:
+        VERSION_FILE: ${{ inputs.version_file }}
+        NEW_VERSION: ${{ steps.version.outputs.new_version }}
+      run: |
+        sed -i -E "s/^version:[[:space:]]*.*/version: ${NEW_VERSION}/" "$VERSION_FILE"
 
     - uses: stefanzweifel/git-auto-commit-action@v5
       with:
