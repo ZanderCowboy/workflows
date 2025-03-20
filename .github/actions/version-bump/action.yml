@@ -5,6 +5,9 @@ inputs:
   github_token:
     description: "Github Token"
     required: true
+  pat_token:
+    description: "Personal Access Token"
+    required: true
   version_file:
     description: "Path to pubspec file"
     required: true
@@ -150,6 +153,7 @@ runs:
       uses: actions/checkout@v4
       with:
         ref: ${{ github.head_ref }}
+        token: ${{ inputs.pat_token }}
 
     - name: Update version file
       shell: bash
