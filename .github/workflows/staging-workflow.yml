@@ -11,19 +11,12 @@ on:
      - staging
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   lint-test-report:
     name: Staging - Version Bump
     runs-on: ubuntu-latest
-
     permissions:
-      contents: read
-      packages: read
-      statuses: write
-      pull-requests: read
+      contents: write
 
     steps:
       - name: Checkout repository
