@@ -71,11 +71,12 @@ runs:
         SEMVER=${LATEST_TAG#v}
         SEMVER=${SEMVER%%-RC*}
         echo "Current version: $SEMVER"
+        echo "Current build: $BUILD"
 
         MAJOR=$(echo "$SEMVER" | cut -d '.' -f 1)
         MINOR=$(echo "$SEMVER" | cut -d '.' -f 2)
         PATCH=$(echo "$SEMVER" | cut -d '.' -f 3 | cut -d '+' -f 1)
-        BUILD=$(echo "$SEMVER" | grep '+' | cut -d '+' -f 2)
+        BUILD=$(echo "$LATEST_TAG" | grep '+' | cut -d '+' -f 2)
         BUILD=${BUILD:-1}
 
         LABELS=""
