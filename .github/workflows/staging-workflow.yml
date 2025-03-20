@@ -11,6 +11,10 @@ on:
      - staging
   workflow_dispatch:
 
+concurrency:
+  group: staging-versioning-and-build
+  cancel-in-progress: false
+
 jobs:
   lint-test-report:
     name: Staging - Version Bump

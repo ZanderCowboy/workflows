@@ -1,26 +1,25 @@
 ---
-name: Develop Workflow
+name: Production Workflow
 
 on:
   pull_request:
     branches:
-      - develop
+      - main
+  push:
+    branches:
+     - main
   workflow_dispatch:
 
 concurrency:
-  group: develop-versioning-and-build
+  group: production-versioning-and-build
   cancel-in-progress: false
 
 jobs:
   lint-test-report:
-    name: Develop - Lint, Test, Report
+    name: Production - Version Bump
     runs-on: ubuntu-latest
-
     permissions:
-      contents: read
-      packages: read
-      statuses: write
-      pull-requests: read
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -29,7 +28,7 @@ jobs:
           fetch-depth: 0
 
       ###########################################
-      # VERSION BUMP
+      # VERSION BUMP and COMMIT
       ###########################################
       - name: Bump version based on PR labels
         uses: ./.github/actions/version-bump
