@@ -12,7 +12,10 @@ inputs:
 outputs:
   new_version:
     description: "New semantic version generated"
-    value: ${{ steps.output.outputs.new_version }}
+    value: ${{ steps.version.outputs.new_version }}
+  new_tag_version: 
+    description: "New tag version generated"
+    value: ${{ steps.version.outputs.new_tag_version }}
 
 runs:
   using: "composite"
@@ -35,6 +38,7 @@ runs:
           && sudo apt install gh -y
 
     - name: Run version bump logic
+      id: version
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
@@ -43,6 +47,7 @@ runs:
         GITHUB_REF_NAME: ${{ github.ref_name }}
         GITHUB_EVENT_NAME: ${{ github.event_name }}
         GITHUB_BASE_REF: ${{ github.base_ref }}
+        GITHUB_HEAD_REF: ${{ github.head_ref }}
       run: |
         set -e
 
@@ -51,9 +56,9 @@ runs:
         echo "GITHUB_REF_NAME: $GITHUB_REF_NAME"
         echo "GITHUB_EVENT_NAME: $GITHUB_EVENT_NAME"
         echo "GITHUB_BASE_REF: $GITHUB_BASE_REF"
+        echo "GITHUB_HEAD_REF: $GITHUB_HEAD_REF"
 
-        # Skip entirely if it's a PR from staging -> main (before merge)
-        if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$GITHUB_REF_NAME" == "staging" && "$GITHUB_BASE_REF" == "main" ]]; then
+        if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$GITHUB_HEAD_REF" == "staging" && "$GITHUB_BASE_REF" == "main" ]]; then
           echo "PR from staging to main detected; no version bump performed."
           exit 0
         fi
@@ -86,10 +91,8 @@ runs:
         elif echo "$LABELS" | grep -qi "patch"; then
           BUMP_TYPE="patch"
         else
-          echo "No valid bump label found (major/minor/patch). Incrementing build number only."
+          echo "Incrementing build number only."
         fi
-
-        echo "Bump type identified: $BUMP_TYPE"
 
         case $BUMP_TYPE in
           major)
@@ -112,9 +115,7 @@ runs:
         BUILD=$((BUILD + 1))
 
         NEW_SEMVER="$MAJOR.$MINOR.$PATCH"
-        echo "new semver = $NEW_SEMVER"
         NEW_VERSION="${NEW_SEMVER}+${BUILD}"
-        echo "new version = $NEW_VERSION"
 
         if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == "staging" ]]; then
           TAG_VERSION="v${NEW_SEMVER}-RC+${BUILD}"
@@ -133,33 +134,12 @@ runs:
           echo "Regular version bump: $TAG_VERSION"
         fi
 
-
-        echo "tag version = $TAG_VERSION"
-
-        # Update version file
         sed -i -E "s/^version:[[:space:]]*.*/version: ${NEW_VERSION}/" "$VERSION_FILE"
-        echo "File updated with new version"
 
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
+        echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "new_tag_version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
 
-        echo "starting commit"
-
-        if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          gh auth setup-git
-
-          git add "$VERSION_FILE"
-          git commit -m "chore: bump version to ${TAG_VERSION#v}"
-          git push origin HEAD
-
-          git tag "$TAG_VERSION"
-          git push origin "$TAG_VERSION"
-        else
-          echo "Pull request event detected; skipping commit/tag push."
-        fi
-
-        echo "new_version=${TAG_VERSION#v}" >> "$GITHUB_OUTPUT"
-        echo "new_version=${TAG_VERSION#v}" >> "$GITHUB_ENV"
+    - uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "Bump version to ${{ steps.version.outputs.new_version }}"
+        tagging_message: "${{ steps.version.outputs.new_tag_version }}"
