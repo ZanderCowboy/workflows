@@ -17,14 +17,13 @@ jobs:
   version-build-prod:
     name: Production - Version Bump, Build, and Production
     runs-on: ubuntu-latest
+
     permissions:
       contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       ###########################################
       # VERSION BUMP
@@ -32,7 +31,6 @@ jobs:
       - name: Bump version based on PR labels
         uses: ./.github/actions/version-bump
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           pat_token: ${{ secrets.PAT_GITHUB_ACTIONS }}
           version_file: "version.txt"
           branch: "main"
