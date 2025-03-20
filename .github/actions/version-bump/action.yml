@@ -30,7 +30,7 @@ runs:
       uses: actions/checkout@v4
       with:
         ref: ${{ github.head_ref }}
-        token: ${{ secrets.PAT_GITHUB_ACTIONS }}
+        token: ${{ inputs.pat_token }}
 
     - name: Install GitHub CLI (gh)
       shell: bash
@@ -147,13 +147,15 @@ runs:
         echo "new_tag_version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
         echo "new_tag_version=${TAG_VERSION}"
 
+        echo "PAT_GITHUB_ACTIONS: ${{ inputs.pat_token }}"
+
     ###########################################
     # AUTO COMMIT
     ###########################################
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        token: ${{ secrets.PAT_GITHUB_ACTIONS }}
+        token: ${{ inputs.pat_token }}
         ref: ${{ github.head_ref }}
 
     - name: Update version file
