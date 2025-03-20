@@ -118,19 +118,15 @@ runs:
         NEW_SEMVER="$MAJOR.$MINOR.$PATCH"
         NEW_VERSION="${NEW_SEMVER}+${BUILD}"
 
-        if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == "staging" ]]; then
-          TAG_VERSION="v${NEW_SEMVER}-RC+${BUILD}"
-          echo "Staging branch detected (push), tagging as RC: $TAG_VERSION"
-
-        elif [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$GITHUB_HEAD_REF" == "staging" ]]; then
+        if [[ "$GITHUB_BASE_REF" == "staging" ]]; then
           TAG_VERSION="v${NEW_SEMVER}-RC+${BUILD}"
           echo "Staging branch detected (pull request), tagging as RC: $TAG_VERSION"
 
-        elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_NAME" == "main" ]]; then
+        elif [[ "$GITHUB_REF_NAME" == "main" ]]; then
           TAG_VERSION="v${NEW_SEMVER}+${BUILD}"
           echo "Merged into main (push), finalizing tag: $TAG_VERSION"
 
-        elif [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$GITHUB_BASE_REF" == "main" && "$GITHUB_HEAD_REF" == "staging" ]]; then
+        elif [[ "$GITHUB_BASE_REF" == "main" && "$GITHUB_HEAD_REF" == "staging" ]]; then
           echo "PR from staging to main detected, no tagging yet."
           exit 0
 
