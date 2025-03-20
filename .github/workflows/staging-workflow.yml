@@ -11,6 +11,9 @@ on:
      - staging
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   lint-test-report:
     name: Staging - Version Bump

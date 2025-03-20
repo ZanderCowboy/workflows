@@ -149,6 +149,8 @@ runs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          gh auth setup-git
+
           git add "$VERSION_FILE"
           git commit -m "chore: bump version to ${TAG_VERSION#v}"
           git push origin HEAD
