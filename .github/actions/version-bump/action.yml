@@ -182,7 +182,8 @@ runs:
       if: ${{ github.ref_name == 'main' }}
       shell: bash
       env:
-        TAG_VERSION: ${{ steps.version.outputs.new_tag_version }}
+        tag_version: ${{ steps.version.outputs.new_tag_version }}
       run: |
+        TAG_VERSION="v${tag_version}"
         git tag "$TAG_VERSION"
         git push origin "$TAG_VERSION"
