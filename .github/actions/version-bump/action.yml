@@ -30,6 +30,7 @@ runs:
       uses: actions/checkout@v4
       with:
         ref: ${{ github.head_ref }}
+        token: ${{ secrets.PAT_GITHUB_ACTIONS }}
 
     - name: Install GitHub CLI (gh)
       shell: bash
@@ -152,8 +153,8 @@ runs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
+        token: ${{ secrets.PAT_GITHUB_ACTIONS }}
         ref: ${{ github.head_ref }}
-        token: ${{ inputs.pat_token }}
 
     - name: Update version file
       shell: bash
