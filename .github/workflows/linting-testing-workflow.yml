@@ -22,6 +22,9 @@ concurrency:
 jobs:
   lint-test-report:
     name: Lint, Test, Report
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && github.event.pull_request == null)
     runs-on: ubuntu-latest
 
     steps:
