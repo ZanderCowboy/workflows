@@ -2,12 +2,12 @@
 name: Develop Workflow
 
 on:
-  push:
-    branches:
-      - develop
   pull_request:
     branches:
       - develop
+      - staging
+      - main
+  workflow_dispatch:
 
 jobs:
   lint-test-report:
