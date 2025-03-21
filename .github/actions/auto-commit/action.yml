@@ -39,7 +39,8 @@ runs:
 
     - uses: actions/checkout@v4
       with:
-        token: ${{ steps.auth.outputs.token }}
+        # token: ${{ steps.auth.outputs.token }}
+        token: ${{ inputs.pat_token }}
         ref: ${{ github.head_ref }}
 
     # - name: Checkout repository
@@ -78,7 +79,7 @@ runs:
       if: ${{ github.ref_name != 'main' }}
       shell: bash
       env:
-        GITHUB_TOKEN: ${{ steps.auth.outputs.token }}
+        GITHUB_TOKEN: ${{ inputs.pat_token }}
         TAG_VERSION: ${{ inputs.new_tag_version }}
         BRANCH: ${{ inputs.branch }}
       run: |
