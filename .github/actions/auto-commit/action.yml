@@ -41,7 +41,6 @@ runs:
       uses: actions/checkout@v4
       with:
         token: ${{ steps.auth.outputs.token }}
-        # ref: ${{ inputs.branch }}
 
     - name: Update version file
       if: ${{ github.ref_name != 'main' }}
@@ -67,23 +66,35 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ steps.auth.outputs.token }}
-        TAG_VERSION: ${{ inputs.new_tag_version }}
         BRANCH: ${{ inputs.branch }}
       run: |
         git config user.name "MyCommitBot"
-        git config user.email "[email protected]"
+        git config user.email "bot@example.com"
 
+        # Fetch the latest state of the target branch
+        git fetch origin $BRANCH:$BRANCH
+
+        # Get the latest commit SHA from the target branch
+        LATEST_REMOTE_SHA=$(git rev-parse origin/$BRANCH)
+        echo "Latest remote SHA: $LATEST_REMOTE_SHA"
+
+        # Create a new tree with updated files
         git add .
-        git commit -m "Automated commit"
+        TREE_SHA=$(git write-tree)
+        
+        # Create a new commit with latest develop as parent
+        NEW_COMMIT_SHA=$(git commit-tree -m "Automated commit" $TREE_SHA -p $LATEST_REMOTE_SHA)
+        echo "New commit SHA: $NEW_COMMIT_SHA"
 
-        # Push directly to develop branch
-        git push origin HEAD:$BRANCH
+        # Update the branch reference directly to the new commit
+        git update-ref refs/heads/$BRANCH $NEW_COMMIT_SHA
 
-        if [ -z "$TAG_VERSION" ]; then
-          echo "TAG_VERSION is not set. Skipping tag step."
-        else
-          git tag "$TAG_VERSION"
-          git push origin "$TAG_VERSION"
+        # Force push the updated reference
+        git push -f origin HEAD:$BRANCH
+
+        if [ -n "${{ inputs.new_tag_version }}" ]; then
+          git tag "${{ inputs.new_tag_version }}"
+          git push origin "${{ inputs.new_tag_version }}"
         fi
 
     - name: Checkout Target Branch
