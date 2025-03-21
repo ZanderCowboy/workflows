@@ -70,7 +70,7 @@ runs:
         LATEST_TAG=${LATEST_TAG:-v0.0.0+0}
         echo "LATEST_TAG=$LATEST_TAG"
 
-        SEMVER=${LATEST_TAG#v}
+        SEMVER=$(echo "${LATEST_TAG#v}" | sed 's/^v*//')
         SEMVER=${SEMVER%%-RC*}
         echo "Current version: $SEMVER"
         echo "Current build: $BUILD"
