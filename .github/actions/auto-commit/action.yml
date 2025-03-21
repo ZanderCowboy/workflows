@@ -30,14 +30,26 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout repository
-      if: ${{ github.ref_name != 'main' }}
-      uses: actions/checkout@v4
+    - name: Get GitHub App Token
+      id: auth
+      uses: tibdex/github-app-token@v2
       with:
-        token: ${{ inputs.pat_token }}
-        ref: ${{ github.head_ref }} # feature branch
-        # ref: ${{ github.ref_name }} # feature branch
-        # ref: ${{ github.base_ref }} # develop branch
+        app_id: ${{ inputs.app_id }}
+        private_key: ${{ inputs.private_key }}
+
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ steps.auth.outputs.token }}
+        ref: ${{ github.head_ref }}
+
+    # - name: Checkout repository
+    #   if: ${{ github.ref_name != 'main' }}
+    #   uses: actions/checkout@v4
+    #   with:
+    #     token: ${{ inputs.pat_token }}
+    #     ref: ${{ github.head_ref }} # feature branch
+    #     # ref: ${{ github.ref_name }} # feature branch
+    #     # ref: ${{ github.base_ref }} # develop branch
 
     - name: Update version file
       if: ${{ github.ref_name != 'main' }}
@@ -61,16 +73,6 @@ runs:
       ###########################################
       # TOKENIZED AUTO COMMIT
       ###########################################
-    - name: Get GitHub App Token
-      id: auth
-      uses: tibdex/github-app-token@v2
-      with:
-        app_id: ${{ inputs.app_id }}
-        private_key: ${{ inputs.private_key }}
-
-    - uses: actions/checkout@v4
-      with:
-        token: ${{ steps.auth.outputs.token }}
 
     - name: Commit and Push Changes
       if: ${{ github.ref_name != 'main' }}
