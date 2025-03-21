@@ -119,7 +119,6 @@ runs:
         echo "BUILD=$BUILD" >> "$GITHUB_ENV"
 
     - name: Determine Tag Versioning
-      if: ${{ steps.version.outputs.NEW_VERSION != ${{ env.SEMVER }} }}
       id: tag_version
       shell: bash
       env:
