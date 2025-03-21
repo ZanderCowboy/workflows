@@ -57,8 +57,8 @@ runs:
       env:
         TAG_VERSION: ${{ inputs.new_tag_version }}
       run: |
-        git tag "$TAG_VERSION"
-        git push origin "$TAG_VERSION"
+        git tag $TAG_VERSION
+        git push origin $TAG_VERSION
 
     - name: Commit and Push Changes
       if: ${{ github.ref_name != 'main' }}
@@ -81,7 +81,7 @@ runs:
         # Push changes with force-with-lease to create a regular commit
         git push --force-with-lease origin HEAD:$BRANCH
 
-        if [ -n "$TAG_VERSION" ]; then
-          git tag "$TAG_VERSION"
-          git push origin "$TAG_VERSION"
+        if [ -n $TAG_VERSION ]; then
+          git tag $TAG_VERSION
+          git push origin $TAG_VERSION
         fi
