@@ -86,17 +86,6 @@ runs:
           LABELS=$(gh pr view "$PR_NUMBER" --json labels -q '.labels[].name')
         fi
 
-        if echo "$LABELS" | grep -qi "no-build"; then
-          echo "Label 'no-build' detected. Skipping version bump and using the current version."
-          NEW_SEMVER="$MAJOR.$MINOR.$PATCH"
-          NEW_VERSION="${NEW_SEMVER}+${BUILD}"
-          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "new_version=${NEW_VERSION}"
-          echo "new_tag_version=v${NEW_SEMVER}+${BUILD}" >> "$GITHUB_OUTPUT"
-          echo "new_tag_version=v${NEW_SEMVER}+${BUILD}"
-          exit 0
-        fi
-
         BUMP_TYPE=""
         if echo "$LABELS" | grep -qi "major"; then
           BUMP_TYPE="major"
@@ -126,7 +115,11 @@ runs:
             ;;
         esac
 
-        BUILD=$((BUILD + 1))
+        if ! echo "$LABELS" | grep -qi "no-build"; then
+          BUILD=$((BUILD + 1))
+        else
+          echo "Label 'no-build' detected. Skipping build number increment."
+        fi
 
         NEW_SEMVER="$MAJOR.$MINOR.$PATCH"
         NEW_VERSION="${NEW_SEMVER}+${BUILD}"
