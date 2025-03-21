@@ -18,10 +18,10 @@ inputs:
 outputs:
   new_version:
     description: "New semantic version generated"
-    value: ${{ steps.version.outputs.new_version }}
+    value: ${{ steps.tag_version.outputs.new_version }}
   new_tag_version:
     description: "New tag version generated"
-    value: ${{ steps.version.outputs.new_tag_version }}
+    value: ${{ steps.tag_version.outputs.new_tag_version }}
 
 runs:
   using: "composite"
@@ -44,6 +44,20 @@ runs:
           && sudo apt update \
           && sudo apt install gh -y
 
+    - name: Get Version from Latest Tag
+      id: get_latest_tag
+      shell: bash
+      run: |
+        git fetch --tags
+        LATEST_TAG=$(git tag -l 'v*.*.*' --sort=-version:refname | head -n1)
+        LATEST_TAG=${LATEST_TAG:-v0.0.0+0}
+        echo "LATEST_TAG=$LATEST_TAG" >> "$GITHUB_ENV"
+
+        SEMVER=$(echo "${LATEST_TAG#v}" | sed 's/^v*//')
+        SEMVER=${SEMVER%%-RC*}
+
+        echo "CURRENT_VERSION=$SEMVER" >> "$GITHUB_ENV"
+
     - name: Run version bump logic
       id: version
       shell: bash
@@ -55,30 +69,14 @@ runs:
         GITHUB_EVENT_NAME: ${{ github.event_name }}
         GITHUB_BASE_REF: ${{ github.base_ref }}
         GITHUB_HEAD_REF: ${{ github.head_ref }}
+        SEMVER: ${{ env.CURRENT_VERSION }}
       run: |
         set -e
-
-        echo "VERSION_FILE: $VERSION_FILE"
-        echo "PR_NUMBER: $PR_NUMBER"
-        echo "GITHUB_REF_NAME: $GITHUB_REF_NAME"
-        echo "GITHUB_EVENT_NAME: $GITHUB_EVENT_NAME"
-        echo "GITHUB_BASE_REF: $GITHUB_BASE_REF"
-        echo "GITHUB_HEAD_REF: $GITHUB_HEAD_REF"
-
-        git fetch --tags
-        LATEST_TAG=$(git tag -l 'v*.*.*' --sort=-version:refname | head -n1)
-        LATEST_TAG=${LATEST_TAG:-v0.0.0+0}
-        echo "LATEST_TAG=$LATEST_TAG"
-
-        SEMVER=${LATEST_TAG#v}
-        SEMVER=${SEMVER%%-RC*}
-        echo "Current version: $SEMVER"
-        echo "Current build: $BUILD"
 
         MAJOR=$(echo "$SEMVER" | cut -d '.' -f 1)
         MINOR=$(echo "$SEMVER" | cut -d '.' -f 2)
         PATCH=$(echo "$SEMVER" | cut -d '.' -f 3 | cut -d '+' -f 1)
-        BUILD=$(echo "$LATEST_TAG" | grep '+' | cut -d '+' -f 2)
+        BUILD=$(echo "$SEMVER" | grep '+' | cut -d '+' -f 2)
         BUILD=${BUILD:-1}
 
         LABELS=""
@@ -86,16 +84,9 @@ runs:
           LABELS=$(gh pr view "$PR_NUMBER" --json labels -q '.labels[].name')
         fi
 
-        BUMP_TYPE=""
-        if echo "$LABELS" | grep -qi "major"; then
-          BUMP_TYPE="major"
-        elif echo "$LABELS" | grep -qi "minor"; then
-          BUMP_TYPE="minor"
-        elif echo "$LABELS" | grep -qi "patch"; then
-          BUMP_TYPE="patch"
-        else
-          echo "Incrementing build number only."
-        fi
+        BUMP_TYPE=$(echo "$LABELS" | grep -oiE "major|minor|patch" | head -n1 || echo "")
+        BUMP_TYPE=${BUMP_TYPE,,} # Convert to lowercase
+        [ -z "$BUMP_TYPE" ] && echo "Incrementing build number only."
 
         case $BUMP_TYPE in
           major)
@@ -115,34 +106,41 @@ runs:
             ;;
         esac
 
-        BUILD=$((BUILD + 1))
+        if ! echo "$LABELS" | grep -qi "no-build"; then
+          BUILD=$((BUILD + 1))
+        else
+          echo "Label 'no-build' detected. Skipping build number increment."
+        fi
 
         NEW_SEMVER="$MAJOR.$MINOR.$PATCH"
         NEW_VERSION="${NEW_SEMVER}+${BUILD}"
 
-        if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$GITHUB_HEAD_REF" == "staging" && "$GITHUB_BASE_REF" == "main" ]]; then
-          echo "PR from staging to main detected; no version bump performed."
-          echo "new_tag_version=${NEW_SEMVER}" >> "$GITHUB_OUTPUT"
-          echo "new_tag_version=${NEW_SEMVER}"
-          exit 0
-        fi
+        echo "NEW_SEMVER=$NEW_SEMVER" >> "$GITHUB_ENV"
+        echo "BUILD=$BUILD" >> "$GITHUB_ENV"
 
-        if [[ "$GITHUB_BASE_REF" == "staging" ]]; then
+    - name: Determine Tag Versioning
+      id: tag_version
+      shell: bash
+      env:
+        GITHUB_BASE_REF: ${{ github.base_ref }}
+        GITHUB_HEAD_REF: ${{ github.head_ref }}
+        NEW_SEMVER: ${{ env.NEW_SEMVER }}
+        BUILD: ${{ env.BUILD }}
+      run: |
+        set -e
+
+        if [[ "$GITHUB_BASE_REF" == "main" ]]; then
+          NEW_VERSION="${NEW_SEMVER}+${BUILD}"
+          TAG_VERSION="v${NEW_SEMVER}"
+          echo "Tagging for Prod: $TAG_VERSION"
+
+        elif [[ "$GITHUB_BASE_REF" == "staging" ]]; then
+          NEW_VERSION="${NEW_SEMVER}+${BUILD}"
           TAG_VERSION="v${NEW_SEMVER}-RC+${BUILD}"
-          echo "Staging branch detected (pull request), tagging as RC: $TAG_VERSION"
-
-        elif [[ "$GITHUB_BASE_REF" == "main" ]]; then
-          TAG_VERSION="v${NEW_SEMVER}+${BUILD}"
-          echo "Merged into main (push), finalizing tag: $TAG_VERSION"
-          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "new_tag_version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
-          exit 0
-
-        elif [[ "$GITHUB_BASE_REF" == "main" && "$GITHUB_HEAD_REF" == "staging" ]]; then
-          echo "PR from staging to main detected, no tagging yet."
-          exit 0
+          echo "Tagging as RC: $TAG_VERSION"
 
         else
+          NEW_VERSION="${NEW_SEMVER}+${BUILD}"
           TAG_VERSION="v${NEW_SEMVER}+${BUILD}"
           echo "Regular version bump: $TAG_VERSION"
         fi
