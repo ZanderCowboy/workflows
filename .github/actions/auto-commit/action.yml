@@ -35,7 +35,9 @@ runs:
       uses: actions/checkout@v4
       with:
         token: ${{ inputs.pat_token }}
-        ref: ${{ github.head_ref }}
+        ref: ${{ github.head_ref }} # feature branch
+        # ref: ${{ github.ref_name }} # feature branch
+        # ref: ${{ github.base_ref }} # develop branch
 
     - name: Update version file
       if: ${{ github.ref_name != 'main' }}
@@ -76,9 +78,14 @@ runs:
       run: |
         git config user.name "MyCommitBot"
         git config user.email "[email protected]"
+
+        git fetch origin $BRANCH:$BRANCH
+        git checkout $BRANCH
+
         git add .
         git commit -m "Automated commit"
-        git push origin $BRANCH
+
+        git push origin HEAD:$BRANCH
 
         if [ -z "$TAG_VERSION" ]; then
           echo "TAG_VERSION is not set. Skipping tag step."
