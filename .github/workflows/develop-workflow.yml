@@ -33,7 +33,7 @@ jobs:
       # VERSION BUMP
       ###########################################
       - name: Bump version based on PR labels
-        if: github.event.pull_request.merged == true
+        # if: github.event.pull_request.merged == true
         id: version
         uses: ./.github/actions/version-bump
         with:
