@@ -55,9 +55,8 @@ runs:
       if: ${{ github.ref_name == 'main' }}
       shell: bash
       env:
-        tag_version: ${{ inputs.new_tag_version }}
+        TAG_VERSION: ${{ inputs.new_tag_version }}
       run: |
-        TAG_VERSION="v${tag_version}"
         git tag "$TAG_VERSION"
         git push origin "$TAG_VERSION"
 
@@ -67,6 +66,7 @@ runs:
       env:
         GITHUB_TOKEN: ${{ steps.auth.outputs.token }}
         BRANCH: ${{ inputs.branch }}
+        TAG_VERSION: ${{ inputs.new_tag_version }}
       run: |
         git config user.name "MyCommitBot"
         git config user.email "bot@example.com"
@@ -81,7 +81,7 @@ runs:
         # Push changes with force-with-lease to create a regular commit
         git push --force-with-lease origin HEAD:$BRANCH
 
-        if [ -n "${{ inputs.new_tag_version }}" ]; then
-          git tag "${{ inputs.new_tag_version }}"
-          git push origin "${{ inputs.new_tag_version }}"
+        if [ -n "$TAG_VERSION" ]; then
+          git tag "$TAG_VERSION"
+          git push origin "$TAG_VERSION"
         fi
