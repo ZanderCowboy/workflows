@@ -46,17 +46,15 @@ jobs:
       # TOKENIZED AUTO COMMIT
       ###########################################
       - name: New Commit
-        # if: github.event.pull_request.merged == true
+        if: github.event.pull_request.merged == true
         uses: ./.github/actions/auto-commit
         with:
           pat_token: ${{ secrets.PAT_TOKEN }}
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
           version_file: "version.txt"
-          # new_version: ${{ steps.version.outputs.new_version }}
-          new_version: "0.1.2+8"
-          # new_tag_version: ${{ steps.version.outputs.new_tag_version }}
-          new_tag_version: "v0.1.2+8"
+          new_version: ${{ steps.version.outputs.new_version }}
+          new_tag_version: ${{ steps.version.outputs.new_tag_version }}
           branch: "develop"
 
       ###########################################
