@@ -18,10 +18,10 @@ inputs:
 outputs:
   new_version:
     description: "New semantic version generated"
-    value: ${{ steps.version.outputs.new_version }}
+    value: ${{ steps.tag_version.outputs.new_version }}
   new_tag_version:
     description: "New tag version generated"
-    value: ${{ steps.version.outputs.new_tag_version }}
+    value: ${{ steps.tag_version.outputs.new_tag_version }}
 
 runs:
   using: "composite"
