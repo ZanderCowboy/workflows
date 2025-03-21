@@ -3,10 +3,16 @@ description: "Bumps semantic version based on PR labels and increments build num
 
 inputs:
   github_token:
-    description: "Github Token"
+    description: "GitHub Token"
+    required: true
+  pat_token:
+    description: "Personal Access Token"
     required: true
   version_file:
     description: "Path to pubspec file"
+    required: true
+  branch:
+    description: "Branch to commit to"
     required: true
 
 outputs:
@@ -24,6 +30,7 @@ runs:
       uses: actions/checkout@v4
       with:
         ref: ${{ github.head_ref }}
+        token: ${{ inputs.pat_token }}
 
     - name: Install GitHub CLI (gh)
       shell: bash
@@ -57,11 +64,6 @@ runs:
         echo "GITHUB_EVENT_NAME: $GITHUB_EVENT_NAME"
         echo "GITHUB_BASE_REF: $GITHUB_BASE_REF"
         echo "GITHUB_HEAD_REF: $GITHUB_HEAD_REF"
-
-        if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$GITHUB_HEAD_REF" == "staging" && "$GITHUB_BASE_REF" == "main" ]]; then
-          echo "PR from staging to main detected; no version bump performed."
-          exit 0
-        fi
 
         git fetch --tags
         LATEST_TAG=$(git tag -l 'v*.*.*' --sort=-version:refname | head -n1)
@@ -118,13 +120,23 @@ runs:
         NEW_SEMVER="$MAJOR.$MINOR.$PATCH"
         NEW_VERSION="${NEW_SEMVER}+${BUILD}"
 
+        if [[ "$GITHUB_EVENT_NAME" == "pull_request" && "$GITHUB_HEAD_REF" == "staging" && "$GITHUB_BASE_REF" == "main" ]]; then
+          echo "PR from staging to main detected; no version bump performed."
+          echo "new_tag_version=${NEW_SEMVER}" >> "$GITHUB_OUTPUT"
+          echo "new_tag_version=${NEW_SEMVER}"
+          exit 0
+        fi
+
         if [[ "$GITHUB_BASE_REF" == "staging" ]]; then
           TAG_VERSION="v${NEW_SEMVER}-RC+${BUILD}"
           echo "Staging branch detected (pull request), tagging as RC: $TAG_VERSION"
 
-        elif [[ "$GITHUB_REF_NAME" == "main" ]]; then
+        elif [[ "$GITHUB_BASE_REF" == "main" ]]; then
           TAG_VERSION="v${NEW_SEMVER}+${BUILD}"
           echo "Merged into main (push), finalizing tag: $TAG_VERSION"
+          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "new_tag_version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
+          exit 0
 
         elif [[ "$GITHUB_BASE_REF" == "main" && "$GITHUB_HEAD_REF" == "staging" ]]; then
           echo "PR from staging to main detected, no tagging yet."
@@ -139,24 +151,3 @@ runs:
         echo "new_version=${NEW_VERSION}"
         echo "new_tag_version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
         echo "new_tag_version=${TAG_VERSION}"
-
-    ###########################################
-    # AUTO COMMIT
-    ###########################################
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ github.head_ref }}
-
-    - name: Update version file
-      shell: bash
-      env:
-        VERSION_FILE: ${{ inputs.version_file }}
-        NEW_VERSION: ${{ steps.version.outputs.new_version }}
-      run: |
-        sed -i -E "s/^version:[[:space:]]*.*/version: ${NEW_VERSION}/" "$VERSION_FILE"
-
-    - uses: stefanzweifel/git-auto-commit-action@v5
-      with:
-        commit_message: "Bump version to ${{ steps.version.outputs.new_version }}"
-        tagging_message: "${{ steps.version.outputs.new_tag_version }}"
