@@ -54,12 +54,12 @@ runs:
     - name: Push tag for main branch
       if: ${{ github.ref_name == 'main' }}
       shell: bash
-      env:
-        tag_version: ${{ inputs.new_version }}
       run: |
-        TAG_VERSION="v${tag_version}"
-        git tag "$TAG_VERSION"
-        git push origin "$TAG_VERSION"
+        echo "Ref_name: main=${{ github.ref_name }}"
+        echo "New Tag Version: ${{ inputs.new_tag_version }}"
+
+        git tag "${{ inputs.new_tag_version }}"
+        git push origin "${{ inputs.new_tag_version }}"
 
     - name: Commit and Push Changes
       if: ${{ github.ref_name != 'main' }}
@@ -68,6 +68,10 @@ runs:
         GITHUB_TOKEN: ${{ steps.auth.outputs.token }}
         BRANCH: ${{ inputs.branch }}
       run: |
+        echo "Ref_name: not-main=${{ github.ref_name }}" 
+        echo "New Tag Version: ${{ inputs.new_tag_version }}"
+        echo "New Version: ${{ inputs.new_version }}"
+
         git config user.name "MyCommitBot"
         git config user.email "bot@example.com"
 
