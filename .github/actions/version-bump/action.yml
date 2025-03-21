@@ -151,39 +151,3 @@ runs:
         echo "new_version=${NEW_VERSION}"
         echo "new_tag_version=${TAG_VERSION}" >> "$GITHUB_OUTPUT"
         echo "new_tag_version=${TAG_VERSION}"
-
-    ###########################################
-    # AUTO COMMIT
-    ###########################################
-    - name: Checkout repository
-      if: ${{ github.ref_name != 'main' }}
-      uses: actions/checkout@v4
-      with:
-        token: ${{ inputs.pat_token }}
-        ref: ${{ github.head_ref }}
-
-    - name: Update version file
-      if: ${{ github.ref_name != 'main' }}
-      shell: bash
-      env:
-        VERSION_FILE: ${{ inputs.version_file }}
-        NEW_VERSION: ${{ steps.version.outputs.new_version }}
-      run: |
-        sed -i -E "s/^version:[[:space:]]*.*/version: ${NEW_VERSION}/" "$VERSION_FILE"
-
-    - uses: stefanzweifel/git-auto-commit-action@v5
-      if: ${{ github.ref_name != 'main' }}
-      with:
-        commit_message: "Bump version to ${{ steps.version.outputs.new_version }}"
-        tagging_message: "${{ steps.version.outputs.new_tag_version }}"
-        branch: ${{ inputs.branch }}
-
-    - name: Push tag for main branch
-      if: ${{ github.ref_name == 'main' }}
-      shell: bash
-      env:
-        tag_version: ${{ steps.version.outputs.new_tag_version }}
-      run: |
-        TAG_VERSION="v${tag_version}"
-        git tag "$TAG_VERSION"
-        git push origin "$TAG_VERSION"
