@@ -74,8 +74,15 @@ runs:
         TAG_VERSION: ${{ inputs.new_tag_version }}
         BRANCH: ${{ inputs.branch }}
       run: |
+        git config user.name "MyCommitBot"
+        git config user.email "[email protected]"
         git add .
         git commit -m "Automated commit"
         git push origin $BRANCH
-        git tag $TAG_VERSION
-        git push origin $TAG_VERSION
+
+        if [ -z "$TAG_VERSION" ]; then
+          echo "TAG_VERSION is not set. Skipping tag step."
+        else
+          git tag "$TAG_VERSION"
+          git push origin "$TAG_VERSION"
+        fi
