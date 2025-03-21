@@ -1,0 +1,87 @@
+###########################################
+# AUTO COMMIT ACTION
+###########################################
+name: "Auto Commit Action"
+description: "Automatically update version files and push changes."
+
+inputs:
+  pat_token:
+    description: "Personal Access Token for authentication"
+    required: true
+  version_file:
+    description: "Path to the version file"
+    required: true
+  branch:
+    description: "Branch to push changes to"
+    required: true
+  new_version:
+    description: "The new version after the update"
+    required: true
+  new_tag_version:
+    description: "The new tag version after the update"
+    required: true
+  app_id:
+    description: "GitHub App ID"
+    required: true
+  private_key:
+    description: "GitHub App Private Key"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get GitHub App Token
+      id: auth
+      uses: tibdex/github-app-token@v2
+      with:
+        app_id: ${{ inputs.app_id }}
+        private_key: ${{ inputs.private_key }}
+
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ steps.auth.outputs.token }}
+
+    - name: Update version file
+      if: ${{ github.ref_name != 'main' }}
+      shell: bash
+      env:
+        VERSION_FILE: ${{ inputs.version_file }}
+        NEW_VERSION: ${{ inputs.new_version }}
+      run: |
+        sed -i -E "s/^version:[[:space:]]*.*/version: ${NEW_VERSION}/" "$VERSION_FILE"
+
+    - name: Commit and Push Changes
+      if: ${{ github.ref_name != 'main' }}
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ steps.auth.outputs.token }}
+        BRANCH: ${{ inputs.branch }}
+      run: |
+        git config user.name "MyCommitBot"
+        git config user.email "bot@example.com"
+
+        # Fetch latest changes
+        git fetch origin $BRANCH
+
+        # Add and commit changes
+        git add .
+        git commit -m "chore: update version to ${{ inputs.new_version }}"
+
+        # Push changes with force-with-lease to create a regular commit
+        git push --force-with-lease origin HEAD:$BRANCH
+
+        if [ -n "${{ inputs.new_tag_version }}" ]; then
+          git tag "${{ inputs.new_tag_version }}"
+          git push origin "${{ inputs.new_tag_version }}"
+        fi
+
+    - name: Push tag for main branch
+      if: ${{ github.ref_name == 'main' }}
+      shell: bash
+      env:
+        tag_version: ${{ inputs.new_version }}
+      run: |
+        TAG_VERSION="v${tag_version}"
+        git tag "$TAG_VERSION"
+        git push origin "$TAG_VERSION"
