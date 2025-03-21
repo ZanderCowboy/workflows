@@ -70,14 +70,20 @@ runs:
         GITHUB_BASE_REF: ${{ github.base_ref }}
         GITHUB_HEAD_REF: ${{ github.head_ref }}
         SEMVER: ${{ env.CURRENT_VERSION }}
+        LATEST_TAG: ${{ env.LATEST_TAG }}
       run: |
         set -e
 
         MAJOR=$(echo "$SEMVER" | cut -d '.' -f 1)
         MINOR=$(echo "$SEMVER" | cut -d '.' -f 2)
         PATCH=$(echo "$SEMVER" | cut -d '.' -f 3 | cut -d '+' -f 1)
-        BUILD=$(echo "$SEMVER" | grep '+' | cut -d '+' -f 2)
+        BUILD=$(echo "$LATEST_TAG" | grep '+' | cut -d '+' -f 2)
         BUILD=${BUILD:-1}
+
+        echo "MAJOR=$MAJOR"
+        echo "MINOR=$MINOR"
+        echo "PATCH=$PATCH"
+        echo "BUILD=$BUILD"
 
         LABELS=""
         if [ -n "$PR_NUMBER" ]; then
