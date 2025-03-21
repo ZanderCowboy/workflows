@@ -29,15 +29,29 @@ jobs:
       # VERSION BUMP
       ###########################################
       - name: Bump version based on PR labels
-        if: |
-          (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
-          (github.event_name == 'push' && github.event.pull_request == null)
+        if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+        id: version
         uses: ./.github/actions/version-bump
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           pat_token: ${{ secrets.PAT_GITHUB_ACTIONS }}
           version_file: "version.txt"
           branch: "staging"
+
+      ###########################################
+      # TOKENIZED AUTO COMMIT
+      ###########################################
+      - name: New Commit
+        if: github.event.pull_request.merged == true
+        uses: ./.github/actions/auto-commit
+        with:
+          pat_token: ${{ secrets.PAT_TOKEN }}
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.PRIVATE_KEY }}
+          version_file: "version.txt"
+          new_version: ${{ steps.version.outputs.new_version }}
+          new_tag_version: ${{ steps.version.outputs.new_tag_version }}
+          branch: "staging"         
 
       ###########################################
       # BUILD
