@@ -56,6 +56,9 @@ jobs:
           new_tag_version: ${{ steps.version.outputs.new_tag_version }}
           branch: "develop"
 
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       ###########################################
       # BUILD
       ###########################################

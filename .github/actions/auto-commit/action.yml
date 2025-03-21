@@ -37,7 +37,8 @@ runs:
         app_id: ${{ inputs.app_id }}
         private_key: ${{ inputs.private_key }}
 
-    - uses: actions/checkout@v4
+    - name: Checkout Repository
+      uses: actions/checkout@v4
       with:
         token: ${{ steps.auth.outputs.token }}
         ref: ${{ inputs.branch }}
@@ -75,6 +76,7 @@ runs:
         git add .
         git commit -m "Automated commit"
 
+        # Push directly to develop branch
         git push origin HEAD:$BRANCH
 
         if [ -z "$TAG_VERSION" ]; then
@@ -83,3 +85,10 @@ runs:
           git tag "$TAG_VERSION"
           git push origin "$TAG_VERSION"
         fi
+
+    - name: Checkout Target Branch
+      if: ${{ github.ref_name != 'main' }}
+      uses: actions/checkout@v4
+      with:
+        token: ${{ steps.auth.outputs.token }}
+        ref: ${{ inputs.branch }}
