@@ -42,7 +42,7 @@ jobs:
       # TOKENIZED AUTO COMMIT
       ###########################################
       - name: New Commit
-        if: github.event.pull_request.merged == true
+        if: github.event.pull_request.merged == true && !contains(join(github.event.pull_request.labels.*.name, ','), 'no-build')
         uses: ./.github/actions/auto-commit
         with:
           pat_token: ${{ secrets.PAT_TOKEN }}
