@@ -55,9 +55,11 @@ runs:
       if: ${{ github.ref_name == 'main' }}
       shell: bash
       run: |
-        echo "Ref_name: main=${{ github.ref_name }}" 
-        git tag ${{ inputs.new_tag_version }}
-        git push origin ${{ inputs.new_tag_version }}
+        echo "Ref_name: main=${{ github.ref_name }}"
+        echo "New Tag Version: ${{ inputs.new_tag_version }}"
+
+        git tag "${{ inputs.new_tag_version }}"
+        git push origin "${{ inputs.new_tag_version }}"
 
     - name: Commit and Push Changes
       if: ${{ github.ref_name != 'main' }}
@@ -67,6 +69,8 @@ runs:
         BRANCH: ${{ inputs.branch }}
       run: |
         echo "Ref_name: not-main=${{ github.ref_name }}" 
+        echo "New Tag Version: ${{ inputs.new_tag_version }}"
+        echo "New Version: ${{ inputs.new_version }}"
 
         git config user.name "MyCommitBot"
         git config user.email "bot@example.com"
