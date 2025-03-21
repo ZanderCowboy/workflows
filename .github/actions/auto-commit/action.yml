@@ -40,17 +40,7 @@ runs:
     - uses: actions/checkout@v4
       with:
         token: ${{ steps.auth.outputs.token }}
-        # token: ${{ inputs.pat_token }}
-        ref: ${{ github.head_ref }}
-
-    # - name: Checkout repository
-    #   if: ${{ github.ref_name != 'main' }}
-    #   uses: actions/checkout@v4
-    #   with:
-    #     token: ${{ inputs.pat_token }}
-    #     ref: ${{ github.head_ref }} # feature branch
-    #     # ref: ${{ github.ref_name }} # feature branch
-    #     # ref: ${{ github.base_ref }} # develop branch
+        ref: ${{ inputs.branch }}
 
     - name: Update version file
       if: ${{ github.ref_name != 'main' }}
@@ -71,10 +61,6 @@ runs:
         git tag "$TAG_VERSION"
         git push origin "$TAG_VERSION"
 
-      ###########################################
-      # TOKENIZED AUTO COMMIT
-      ###########################################
-
     - name: Commit and Push Changes
       if: ${{ github.ref_name != 'main' }}
       shell: bash
@@ -84,10 +70,7 @@ runs:
         BRANCH: ${{ inputs.branch }}
       run: |
         git config user.name "MyCommitBot"
-        git config user.email "[email protected]"
-
-        git fetch origin $BRANCH:$BRANCH
-        git checkout $BRANCH
+        git config user.email "[email protected]"
 
         git add .
         git commit -m "Automated commit"
