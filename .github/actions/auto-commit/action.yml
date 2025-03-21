@@ -68,6 +68,10 @@ runs:
         app_id: ${{ inputs.app_id }}
         private_key: ${{ inputs.private_key }}
 
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ steps.auth.outputs.token }}
+
     - name: Commit and Push Changes
       if: ${{ github.ref_name != 'main' }}
       shell: bash
