@@ -55,9 +55,6 @@ runs:
       if: ${{ github.ref_name == 'main' }}
       shell: bash
       run: |
-        echo "Ref_name: main=${{ github.ref_name }}"
-        echo "New Tag Version: ${{ inputs.new_tag_version }}"
-
         git tag "${{ inputs.new_tag_version }}"
         git push origin "${{ inputs.new_tag_version }}"
 
@@ -68,10 +65,6 @@ runs:
         GITHUB_TOKEN: ${{ steps.auth.outputs.token }}
         BRANCH: ${{ inputs.branch }}
       run: |
-        echo "Ref_name: not-main=${{ github.ref_name }}" 
-        echo "New Tag Version: ${{ inputs.new_tag_version }}"
-        echo "New Version: ${{ inputs.new_version }}"
-
         git config user.name "MyCommitBot"
         git config user.email "bot@example.com"
 
