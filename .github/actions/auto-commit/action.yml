@@ -51,6 +51,16 @@ runs:
       run: |
         sed -i -E "s/^version:[[:space:]]*.*/version: ${NEW_VERSION}/" "$VERSION_FILE"
 
+    - name: Push tag for main branch
+      if: ${{ github.ref_name == 'main' }}
+      shell: bash
+      env:
+        tag_version: ${{ inputs.new_tag_version }}
+      run: |
+        TAG_VERSION="v${tag_version}"
+        git tag "$TAG_VERSION"
+        git push origin "$TAG_VERSION"
+
     - name: Commit and Push Changes
       if: ${{ github.ref_name != 'main' }}
       shell: bash
@@ -75,13 +85,3 @@ runs:
           git tag "${{ inputs.new_tag_version }}"
           git push origin "${{ inputs.new_tag_version }}"
         fi
-
-    - name: Push tag for main branch
-      if: ${{ github.ref_name == 'main' }}
-      shell: bash
-      env:
-        tag_version: ${{ inputs.new_version }}
-      run: |
-        TAG_VERSION="v${tag_version}"
-        git tag "$TAG_VERSION"
-        git push origin "$TAG_VERSION"
